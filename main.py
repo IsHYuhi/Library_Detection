@@ -1,15 +1,17 @@
-from engine import train_one_epoch, evaluate
-import utils
+from utils.engine import train_one_epoch, evaluate
+from utils import utils
+from utils import transforms as T
+from utils.dataset import BookDataset
+from models.MaskRCNN import get_model
 import torch
 import os
-import transforms as T
-from dataset import BookDataset
-from MaskRCNN import get_model
 def get_transform(train):
     transforms = []
-    transforms.append(T.ToTensor())
+    transforms.append(T.ToTensor())#一度全てToTensor()
     if train:
-        transforms.append(T.RandomHorizontalFlip(0.5))
+        transforms.append(T.RandomHorizontalFlip(0.5))#0.5の確率でRandomHorizontalFlip
+        transforms.append(T.RandomErasing())#default.p=0.5
+        #transforms.append(T.ColorJitter(brightness=0.125, contrast=0.125, saturation=.05, hue=.05))
     return T.Compose(transforms)
 
 def main():
@@ -22,8 +24,8 @@ def main():
     dataset_test = BookDataset('./', get_transform(train=False))
 
     indices = torch.randperm(len(dataset)).tolist()
-    dataset = torch.utils.data.Subset(dataset, indices[:-2])
-    dataset_test = torch.utils.data.Subset(dataset_test, indices[-2:])
+    dataset = torch.utils.data.Subset(dataset, indices[:-50])
+    dataset_test = torch.utils.data.Subset(dataset_test, indices[-50:])
 
     data_loader = torch.utils.data.DataLoader(
         dataset, batch_size=2, shuffle=False, num_workers=4,
@@ -35,7 +37,6 @@ def main():
     )
 
     model = get_model(num_classes)
-
     model.to(device)
 
     params = [p for p in model.parameters() if p.requires_grad]
